@@ -65,16 +65,16 @@ module JSONAPI
 
       def authorize_show_relationship
         parent_resource = @resource_klass.find_by_key(
-          @operation.parent_key,
+          @params[:parent_key],
           context: context
         )
 
-        relationship = @resource_klass._relationship(@operation.relationship_type)
+        relationship = @resource_klass._relationship(params[:relationship_type])
 
         related_resource =
           case relationship
           when JSONAPI::Relationship::ToOne
-            parent_resource.public_send(@operation.relationship_type)
+            parent_resource.public_send(params[:relationship_type])
           when JSONAPI::Relationship::ToMany
             # Do nothing — already covered by policy scopes
           else
@@ -87,12 +87,13 @@ module JSONAPI
       end
 
       def authorize_show_related_resource
+        byebug
         source_resource = @params[:source_klass].find_by_key(
           @source_id,
           context: context
         )
 
-        related_resource = source_resource.public_send(@operation.relationship_type)
+        related_resource = source_resource.public_send(@params[:relationship_type])
 
         source_record = source_resource._model
         related_record = related_resource._model unless related_resource.nil?
@@ -139,10 +140,10 @@ module JSONAPI
         )
         source_record = source_resource._model
 
-        old_related_record = source_resource.records_for(@operation.relationship_type)
-        unless @operation.key_value.nil?
-          new_related_resource = @resource_klass._relationship(@operation.relationship_type).resource_klass.find_by_key(
-            @operation.key_value,
+        old_related_record = source_resource.records_for(@params[:relationship_type])
+        unless @params[:key_value].nil?
+          new_related_resource = @resource_klass._relationship(@params[:relationship_type]).resource_klass.find_by_key(
+            @params[:key_value],
             context: context
           )
           new_related_record = new_related_resource._model unless new_related_resource.nil?
@@ -156,13 +157,14 @@ module JSONAPI
       end
 
       def authorize_create_to_many_relationship
+        byebug
         source_record = @resource_klass.find_by_key(
           @resource_id,
           context: context
         )._model
 
         related_models =
-          model_class_for_relationship(@operation.relationship_type).find(@operation.data)
+          model_class_for_relationship(@params[:relationship_type]).find(@params[:data])
 
         authorizer.create_to_many_relationship(source_record, related_models)
       end
@@ -174,7 +176,7 @@ module JSONAPI
         )
         source_record = source_resource._model
 
-        related_records = source_resource.records_for(@operation.relationship_type)
+        related_records = source_resource.records_for(@params[:relationship_type])
 
         authorizer.replace_to_many_relationship(
           source_record,
@@ -189,8 +191,8 @@ module JSONAPI
         )
         source_record = source_resource._model
 
-        related_resource = @resource_klass._relationship(@operation.relationship_type).resource_klass.find_by_key(
-          @operation.associated_key,
+        related_resource = @resource_klass._relationship(@params[:relationship_type]).resource_klass.find_by_key(
+          @params[:associated_key],
           context: context
         )
         related_record = related_resource._model unless related_resource.nil?
@@ -207,7 +209,7 @@ module JSONAPI
           context: context
         )
 
-        related_resource = source_resource.public_send(@operation.relationship_type)
+        related_resource = source_resource.public_send(@params[:relationship_type])
 
         source_record = source_resource._model
         related_record = related_resource._model unless related_resource.nil?
